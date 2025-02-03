@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elastic Ball Simulation</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        canvas { border: 2px solid black; display: block; margin: auto; }
+        .controls { margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Elastic Ball Simulation</h1>
+    <canvas id="canvas" width="600" height="400"></canvas>
+    <div class="controls">
+        <label>Time Step: <input type="range" id="timeStep" min="0.01" max="0.1" step="0.01" value="0.05"></label>
+        <label>Gravity: <input type="range" id="gravity" min="-0.5" max="0.5" step="0.01" value="0.1"></label>
+        <label>Ball Weight: <input type="range" id="weight" min="1" max="10" step="1" value="5"></label>
+        <label>Elasticity: <input type="range" id="elasticity" min="0" max="1" step="0.05" value="0.8"></label>
+    </div>
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        let balls = [];
+
+        canvas.addEventListener("click", (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            balls.push(new Ball(x, y));
+        });
+
+        class Ball {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 10;
+                this.dx = (Math.random() - 0.5) * 4;
+                this.dy = (Math.random() - 0.5) * 4;
+                this.mass = parseFloat(document.getElementById("weight").value);
+            }
+            update() {
+                this.dy += parseFloat(document.getElementById("gravity").value);
+                this.x += this.dx * parseFloat(document.getElementById("timeStep").value);
+                this.y += this.dy * parseFloat(document.getElementById("timeStep").value);
+                
+                if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) {
+                    this.dx *= -parseFloat(document.getElementById("elasticity").value);
+                }
+                if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) {
+                    this.dy *= -parseFloat(document.getElementById("elasticity").value);
+                }
+                this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = "blue";
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+
+        function detectCollisions() {
+            for (let i = 0; i < balls.length; i++) {
+                for (let j = i + 1; j < balls.length; j++) {
+                    let dx = balls[j].x - balls[i].x;
+                    let dy = balls[j].y - balls[i].y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < balls[i].radius + balls[j].radius) {
+                        let elasticity = parseFloat(document.getElementById("elasticity").value);
+                        [balls[i].dx, balls[j].dx] = [balls[j].dx * elasticity, balls[i].dx * elasticity];
+                        [balls[i].dy, balls[j].dy] = [balls[j].dy * elasticity, balls[i].dy * elasticity];
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            detectCollisions();
+            balls.forEach(ball => { ball.update(); ball.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
